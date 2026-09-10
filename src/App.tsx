@@ -11,10 +11,9 @@ import { AuthModal } from './components/AuthModal.tsx';
 import { ProfileDetailModal } from './components/ProfileDetailModal.tsx';
 import { ProfileEditModal } from './components/ProfileEditModal.tsx';
 import { SendInterestModal } from './components/SendInterestModal.tsx';
-import LipScrollZoominAnimationDemo from '@/components/ui/demo.tsx';
 import { api, tokenStorage } from './services/api.ts';
 import { User, Profile, Interest, Favorite, MatchRecommendation, SearchFilters } from './types.ts';
-import { Heart, ShieldCheck, Lock, Users, Sparkles, Phone, Mail } from 'lucide-react';
+import { Heart, ShieldCheck, Lock, Users, Sparkles, Phone, Mail, CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -22,12 +21,29 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<string>('home');
   const [loading, setLoading] = useState<boolean>(true);
 
+  // Toast Notification State
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast((curr) => (curr?.message === message ? null : curr));
+    }, 4000);
+  };
+
   // Modals state
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState<'login' | 'register' | 'admin' | 'forgot'>('login');
   const [profileDetail, setProfileDetail] = useState<Profile | null>(null);
   const [profileEditOpen, setProfileEditOpen] = useState(false);
   const [targetInterestProfile, setTargetInterestProfile] = useState<Profile | null>(null);
+
+  // Context preservation & modal stacking prevention
+  const [pendingAuthAction, setPendingAuthAction] = useState<{
+    type: 'interest' | 'favorite' | 'view';
+    profile: Profile;
+  } | null>(null);
+  const [stackedPreviousProfile, setStackedPreviousProfile] = useState<Profile | null>(null);
 
   // App-wide data
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -82,9 +98,8 @@ export default function App() {
           setActiveTab('home');
         }
       } else {
-        // Auto-login as demo user Priya on first load for an immediate interactive experience
-        await handleQuickSwitch('priya');
-        return;
+        // Initialize by default to landing/guest state without auto-login
+        setActiveTab('home');
       }
     } finally {
       setLoading(false);
@@ -157,14 +172,88 @@ export default function App() {
     setAuthModalOpen(true);
   };
 
-  const handleAuthSuccess = (user: User, profile?: Profile) => {
+  const handleOpenSendInterest = (profile: Profile) => {
+    if (!currentUser) {
+      setPendingAuthAction({ type: 'interest', profile });
+      if (profileDetail) {
+        setStackedPreviousProfile(profileDetail);
+        setProfileDetail(null);
+      }
+      handleOpenAuth('login');
+      return;
+    }
+
+    if (profileDetail) {
+      setStackedPreviousProfile(profileDetail);
+      setProfileDetail(null);
+    }
+    setTargetInterestProfile(profile);
+  };
+
+  const handleCloseSendInterest = () => {
+    setTargetInterestProfile(null);
+    if (stackedPreviousProfile) {
+      setProfileDetail(stackedPreviousProfile);
+      setStackedPreviousProfile(null);
+    }
+  };
+
+  const handleAuthSuccess = async (user: User, profile?: Profile) => {
     setCurrentUser(user);
     if (profile) setCurrentProfile(profile);
+    setAuthModalOpen(false);
+
     if (user.role === 'admin') {
       setActiveTab('admin');
-    } else {
-      setActiveTab('dashboard');
+      setPendingAuthAction(null);
+      setStackedPreviousProfile(null);
+      return;
     }
+
+    // Context preservation: execute pending action seamlessly
+    if (pendingAuthAction) {
+      const action = pendingAuthAction;
+      setPendingAuthAction(null);
+
+      if (action.type === 'interest') {
+        showToast(`Welcome ${user.username}! Ready to express your interest in ${action.profile.fullName}.`, 'info');
+        setTargetInterestProfile(action.profile);
+        return;
+      }
+
+      if (action.type === 'favorite') {
+        try {
+          await api.addFavorite(action.profile._id);
+          setFavoriteIds((prev) => new Set(prev).add(action.profile._id));
+          setFavorites((prev) => [
+            ...prev,
+            {
+              id: 'fav_' + Date.now(),
+              userId: user._id,
+              profileId: action.profile._id,
+              profile: action.profile,
+              createdAt: new Date().toISOString()
+            }
+          ]);
+          showToast(`Welcome! Added ${action.profile.fullName} to your shortlist.`, 'success');
+          if (stackedPreviousProfile) {
+            setProfileDetail(stackedPreviousProfile);
+            setStackedPreviousProfile(null);
+          }
+        } catch (err: any) {
+          showToast(err.message || 'Could not update shortlist', 'error');
+        }
+        return;
+      }
+    }
+
+    if (stackedPreviousProfile) {
+      setProfileDetail(stackedPreviousProfile);
+      setStackedPreviousProfile(null);
+      return;
+    }
+
+    setActiveTab('dashboard');
   };
 
   const handleLogout = () => {
@@ -172,45 +261,18 @@ export default function App() {
     setCurrentUser(null);
     setCurrentProfile(null);
     setActiveTab('home');
-  };
-
-  const handleQuickSwitch = async (role: 'priya' | 'rohit' | 'admin' | 'guest') => {
-    setLoading(true);
-    try {
-      if (role === 'guest') {
-        handleLogout();
-        return;
-      }
-
-      let res;
-      if (role === 'priya') {
-        res = await api.login({ identifier: 'priya@example.com', password: 'Password123!' });
-      } else if (role === 'rohit') {
-        res = await api.login({ identifier: 'rohit@example.com', password: 'Password123!' });
-      } else if (role === 'admin') {
-        res = await api.adminLogin({ identifier: 'admin@matrimony.com', password: 'AdminPass123!' });
-      }
-
-      if (res) {
-        tokenStorage.set(res.token);
-        setCurrentUser(res.user);
-        if (res.profile) setCurrentProfile(res.profile);
-
-        if (res.user.role === 'admin') {
-          setActiveTab('admin');
-        } else {
-          setActiveTab('dashboard');
-        }
-      }
-    } catch (err) {
-      console.error('Quick switch failed:', err);
-    } finally {
-      setLoading(false);
-    }
+    setPendingAuthAction(null);
+    setStackedPreviousProfile(null);
+    showToast('You have been logged out safely.', 'info');
   };
 
   const handleToggleFavorite = async (profile: Profile) => {
     if (!currentUser) {
+      setPendingAuthAction({ type: 'favorite', profile });
+      if (profileDetail) {
+        setStackedPreviousProfile(profileDetail);
+        setProfileDetail(null);
+      }
       handleOpenAuth('login');
       return;
     }
@@ -224,6 +286,7 @@ export default function App() {
           return next;
         });
         setFavorites((prev) => prev.filter((f) => f.profileId !== profile._id));
+        showToast(`Removed ${profile.fullName} from shortlisted favorites.`, 'info');
       } else {
         await api.addFavorite(profile._id);
         setFavoriteIds((prev) => new Set(prev).add(profile._id));
@@ -237,16 +300,27 @@ export default function App() {
             createdAt: new Date().toISOString()
           }
         ]);
+        showToast(`Added ${profile.fullName} to your shortlist!`, 'success');
       }
     } catch (err: any) {
-      alert(err.message || 'Could not update favorites');
+      showToast(err.message || 'Could not update favorites', 'error');
     }
   };
 
   const handleSendInterestSubmit = async (profileId: string, message: string) => {
-    const res = await api.sendInterest(profileId, message);
-    setSentInterestIds((prev) => new Set(prev).add(profileId));
-    setInterestsSent((prev) => [...prev, res.interest]);
+    try {
+      const res = await api.sendInterest(profileId, message);
+      setSentInterestIds((prev) => new Set(prev).add(profileId));
+      setInterestsSent((prev) => [...prev, res.interest]);
+      setTargetInterestProfile(null);
+      if (stackedPreviousProfile) {
+        setProfileDetail(stackedPreviousProfile);
+        setStackedPreviousProfile(null);
+      }
+      showToast('Matrimonial expression of interest successfully sent!', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to send interest', 'error');
+    }
   };
 
   const handleAdminToggleVerify = async (profileId: string) => {
@@ -262,13 +336,36 @@ export default function App() {
       if (currentProfile && currentProfile._id === profileId) {
         setCurrentProfile({ ...currentProfile, isVerified });
       }
+      showToast(`Profile verification status updated to ${isVerified ? 'Verified' : 'Unverified'}.`, 'success');
     } catch (err: any) {
-      alert(err.message || 'Failed to update verification');
+      showToast(err.message || 'Failed to update verification', 'error');
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#faf7f2] text-slate-800 selection:bg-rose-100 selection:text-rose-900">
+    <div className="min-h-screen flex flex-col bg-[#faf7f2] text-slate-800 selection:bg-rose-100 selection:text-rose-900 relative">
+      {/* Dynamic Toast Feedback Notification */}
+      {toast && (
+        <aside
+          role="status"
+          aria-live="polite"
+          className="fixed top-5 left-1/2 -translate-x-1/2 z-50 max-w-md w-[90%] sm:w-auto flex items-center space-x-3 px-4 py-3 rounded-2xl shadow-xl border backdrop-blur-md animate-in fade-in slide-in-from-top-4 duration-200 bg-white/95 text-slate-900 border-slate-200"
+        >
+          {toast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />}
+          {toast.type === 'error' && <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />}
+          {toast.type === 'info' && <Info className="w-5 h-5 text-amber-600 shrink-0" />}
+          <p className="text-xs sm:text-sm font-semibold pr-2">{toast.message}</p>
+          <button
+            type="button"
+            onClick={() => setToast(null)}
+            aria-label="Dismiss notification"
+            className="p-1 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors ml-auto shrink-0"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </aside>
+      )}
+
       {/* Top Navigation */}
       <Navbar
         currentUser={currentUser}
@@ -284,11 +381,10 @@ export default function App() {
         pendingInterestsCount={interestsReceived.filter((i) => i.status === 'pending').length}
         onOpenAuth={handleOpenAuth}
         onLogout={handleLogout}
-        onQuickSwitch={handleQuickSwitch}
       />
 
-      {/* Main App Content Body */}
-      <main className="flex-1">
+      {/* Main App Content Body (pb-20 on mobile to clear bottom navigation) */}
+      <main className="flex-1 pb-20 md:pb-0">
         {/* TAB: LANDING HOME (For guest or exploration) */}
         {activeTab === 'home' && (
           <LandingHero
@@ -321,7 +417,7 @@ export default function App() {
               }
             }}
             onViewProfile={(prof) => setProfileDetail(prof)}
-            onSendInterest={(prof) => setTargetInterestProfile(prof)}
+            onSendInterest={(prof) => handleOpenSendInterest(prof)}
             onToggleFavorite={handleToggleFavorite}
             favoriteIds={favoriteIds}
           />
@@ -334,12 +430,14 @@ export default function App() {
             filters={searchFilters}
             onFilterChange={setSearchFilters}
             onViewProfile={(prof) => setProfileDetail(prof)}
-            onSendInterest={(prof) => setTargetInterestProfile(prof)}
+            onSendInterest={(prof) => handleOpenSendInterest(prof)}
             onToggleFavorite={handleToggleFavorite}
             favoriteIds={favoriteIds}
             sentInterestIds={sentInterestIds}
             isLoggedIn={!!currentUser}
-            onPromptLogin={() => handleOpenAuth('login')}
+            onPromptLogin={() => {
+              handleOpenAuth('login');
+            }}
           />
         )}
 
@@ -348,7 +446,7 @@ export default function App() {
           <RecommendationsView
             recommendations={recommendations}
             onViewProfile={(prof) => setProfileDetail(prof)}
-            onSendInterest={(prof) => setTargetInterestProfile(prof)}
+            onSendInterest={(prof) => handleOpenSendInterest(prof)}
             onToggleFavorite={handleToggleFavorite}
             favoriteIds={favoriteIds}
             sentInterestIds={sentInterestIds}
@@ -363,7 +461,7 @@ export default function App() {
             favorites={favorites}
             onRefresh={loadUserData}
             onViewProfile={(prof) => setProfileDetail(prof)}
-            onSendInterest={(prof) => setTargetInterestProfile(prof)}
+            onSendInterest={(prof) => handleOpenSendInterest(prof)}
           />
         )}
 
@@ -382,39 +480,26 @@ export default function App() {
         {activeTab === 'admin' && (
           <AdminPanel onViewProfile={(prof) => setProfileDetail(prof)} />
         )}
-
-        {/* TAB: CINEMATIC STORY / LIP SCROLL ZOOM-IN DEMO */}
-        {activeTab === 'cinematic' && (
-          <div className="relative w-full">
-            <div className="sticky top-18 z-30 bg-slate-900/95 backdrop-blur-md text-white px-4 sm:px-6 py-2.5 flex items-center justify-between text-xs border-b border-slate-800 shadow-md">
-              <div className="flex items-center space-x-2">
-                <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-                <span className="font-semibold uppercase tracking-wider text-rose-400">Lip Scroll Zoom-in Animation</span>
-                <span className="hidden sm:inline text-slate-300">| Scroll down to trigger the interactive GSAP pin & lip-mask zoom effect</span>
-              </div>
-              <button
-                onClick={() => setActiveTab(currentUser ? 'dashboard' : 'home')}
-                className="px-3 py-1 bg-white/15 hover:bg-white/25 text-white font-medium rounded-lg text-xs transition-colors cursor-pointer"
-              >
-                Back to App
-              </button>
-            </div>
-            <LipScrollZoominAnimationDemo />
-          </div>
-        )}
       </main>
 
       {/* Profile Detail Modal */}
       {profileDetail && (
         <ProfileDetailModal
           profile={profileDetail}
-          onClose={() => setProfileDetail(null)}
-          onSendInterest={(prof) => setTargetInterestProfile(prof)}
+          onClose={() => {
+            setProfileDetail(null);
+            setStackedPreviousProfile(null);
+          }}
+          onSendInterest={(prof) => handleOpenSendInterest(prof)}
           onToggleFavorite={handleToggleFavorite}
           isFavorite={favoriteIds.has(profileDetail._id)}
           hasSentInterest={sentInterestIds.has(profileDetail._id)}
           isLoggedIn={!!currentUser}
-          onPromptLogin={() => handleOpenAuth('login')}
+          onPromptLogin={() => {
+            setStackedPreviousProfile(profileDetail);
+            setProfileDetail(null);
+            handleOpenAuth('login');
+          }}
           isAdmin={currentUser?.role === 'admin'}
           onAdminToggleVerify={handleAdminToggleVerify}
         />
@@ -438,7 +523,7 @@ export default function App() {
         <SendInterestModal
           isOpen={!!targetInterestProfile}
           targetProfile={targetInterestProfile}
-          onClose={() => setTargetInterestProfile(null)}
+          onClose={handleCloseSendInterest}
           onSubmit={handleSendInterestSubmit}
         />
       )}
@@ -447,7 +532,13 @@ export default function App() {
       <AuthModal
         isOpen={authModalOpen}
         initialTab={authModalTab}
-        onClose={() => setAuthModalOpen(false)}
+        onClose={() => {
+          setAuthModalOpen(false);
+          if (stackedPreviousProfile) {
+            setProfileDetail(stackedPreviousProfile);
+            setStackedPreviousProfile(null);
+          }
+        }}
         onAuthSuccess={handleAuthSuccess}
       />
 
@@ -503,11 +594,21 @@ export default function App() {
 
             <div className="space-y-2">
               <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                Demonstration Testing
+                Support & Inquiries
               </h4>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Use the top-right <span className="font-semibold text-slate-700">Demo Role Switcher</span> to evaluate user perspectives (Priya, Rohit) or switch directly into the <span className="font-semibold text-amber-800">Admin Control Panel</span>.
+                Need guidance with profile registration, verification badges, or match preferences? Our dedicated support team is here to assist you.
               </p>
+              <div className="pt-1 flex flex-col space-y-1 text-xs text-slate-600">
+                <span className="flex items-center space-x-1.5">
+                  <Phone className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Toll-Free: 1800-BANDHAN</span>
+                </span>
+                <span className="flex items-center space-x-1.5">
+                  <Mail className="w-3.5 h-3.5 text-rose-600" />
+                  <span>support@bandhanmatrimony.com</span>
+                </span>
+              </div>
             </div>
           </div>
 

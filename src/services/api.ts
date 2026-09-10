@@ -75,7 +75,7 @@ export const api = {
   getMe: () => request<{ user: User; profile?: Profile }>('/api/auth/me'),
 
   forgotPassword: (email: string) =>
-    request<{ message: string; demoOtp: string; resetToken?: string }>('/api/auth/forgot-password', {
+    request<{ message: string; resetToken?: string }>('/api/auth/forgot-password', {
       method: 'POST',
       body: JSON.stringify({ email })
     }),
@@ -178,6 +178,11 @@ export const api = {
     request<{ message: string; user: Partial<User> }>(`/api/admin/users/${userId}/status`, {
       method: 'PUT',
       body: JSON.stringify({ status })
+    }),
+
+  deleteAdminUser: (userId: string) =>
+    request<{ message: string }>(`/api/admin/users/${userId}`, {
+      method: 'DELETE'
     }),
 
   toggleProfileVerification: (profileId: string, isVerified?: boolean) =>

@@ -1,5 +1,5 @@
 import { User, Profile, Interest, Favorite } from './types.ts';
-import { hashPassword } from './auth.ts';
+import { hashPassword } from './crypto.ts';
 
 const defaultPasswordHash = hashPassword('Password123!');
 const adminPasswordHash = hashPassword('AdminPass123!');

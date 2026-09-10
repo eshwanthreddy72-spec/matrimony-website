@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Save, AlertCircle, CheckCircle, User, BookOpen, HeartHandshake, MapPin, Sparkles } from 'lucide-react';
 import { Profile } from '../types.ts';
 import { api } from '../services/api.ts';
@@ -20,6 +20,18 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Close on Escape key press
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   // Form State
   const [fullName, setFullName] = useState(profile?.fullName || '');
@@ -111,19 +123,26 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6">
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="edit-profile-title"
+    >
       <div className="relative bg-white w-full max-w-3xl rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-[#faf7f2]/80">
           <div>
-            <h2 className="font-serif-display text-xl font-bold text-slate-900">
+            <h2 id="edit-profile-title" className="font-serif-display text-xl font-bold text-slate-900">
               Edit Matrimonial Profile
             </h2>
-            <p className="text-xs text-slate-500">Provide accurate details to increase match compatibility</p>
+            <p className="text-xs text-slate-600">Provide accurate details to increase match compatibility</p>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-slate-200 text-slate-500 transition-colors"
+            aria-label="Close edit profile dialog"
+            className="min-w-[44px] min-h-[44px] rounded-full hover:bg-slate-200 text-slate-600 hover:text-slate-900 flex items-center justify-center transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -145,7 +164,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
                 key={item.id}
                 type="button"
                 onClick={() => setActiveTab(item.id as any)}
-                className={`flex items-center space-x-1.5 px-4 py-3 whitespace-nowrap border-b-2 transition-colors ${
+                className={`flex items-center space-x-1.5 px-4 py-3 min-h-[44px] whitespace-nowrap border-b-2 transition-colors ${
                   activeTab === item.id
                     ? 'border-rose-600 text-rose-700 bg-white font-bold'
                     : 'border-transparent text-slate-600 hover:text-slate-900'
@@ -529,7 +548,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
+              className="px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors flex items-center justify-center"
             >
               Cancel
             </button>
@@ -537,7 +556,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2.5 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white rounded-xl text-xs font-bold shadow-md shadow-rose-200 flex items-center space-x-1.5 transition-transform active:scale-95 disabled:opacity-70"
+              className="px-6 py-2.5 min-h-[44px] bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white rounded-xl text-xs font-bold shadow-md shadow-rose-200 flex items-center space-x-1.5 transition-transform active:scale-95 disabled:opacity-70 justify-center"
             >
               <Save className="w-4 h-4" />
               <span>{loading ? 'Saving Changes...' : 'Save Profile Changes'}</span>

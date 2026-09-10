@@ -202,15 +202,13 @@ router.post('/forgot-password', (req: Request, res: Response) => {
   if (!user) {
     // Return friendly message without revealing user existence
     return res.json({
-      message: 'If an account exists with this email, an OTP and reset instructions have been generated.',
-      demoOtp: '123456'
+      message: 'If an account exists with this email, an OTP and reset instructions have been generated.'
     });
   }
 
-  const { otp, token } = db.createResetToken(user.email);
+  const { token } = db.createResetToken(user.email);
   return res.json({
-    message: `A 6-digit OTP has been sent to ${user.email}. (For testing: use OTP: ${otp})`,
-    demoOtp: otp,
+    message: `A 6-digit verification OTP has been sent to ${user.email}.`,
     resetToken: token
   });
 });

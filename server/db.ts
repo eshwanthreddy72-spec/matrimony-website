@@ -44,8 +44,44 @@ class Database {
       } else {
         this.save();
       }
+
+      this.sanitizeRolesAndIntegrity();
     } catch (err) {
       console.warn('Could not load existing db.json, using seed memory:', err);
+    }
+  }
+
+  private sanitizeRolesAndIntegrity() {
+    let modified = false;
+
+    // 1. Sanitize roles: ensure all users have strictly 'user' or 'admin'
+    for (const u of this.data.users) {
+      if (u.role !== 'admin' && u.role !== 'user') {
+        u.role = 'user';
+        modified = true;
+      }
+    }
+
+    // 2. Cascade integrity: remove any orphan profiles missing active users
+    const userIds = new Set(this.data.users.map(u => u._id));
+    const initialProfileCount = this.data.profiles.length;
+    this.data.profiles = this.data.profiles.filter(p => userIds.has(p.userId));
+    if (this.data.profiles.length !== initialProfileCount) modified = true;
+
+    // 3. Cascade integrity: remove any orphan interests
+    const initialInterestCount = this.data.interests.length;
+    this.data.interests = this.data.interests.filter(
+      i => userIds.has(i.fromUserId) && userIds.has(i.toUserId)
+    );
+    if (this.data.interests.length !== initialInterestCount) modified = true;
+
+    // 4. Cascade integrity: remove any orphan favorites
+    const initialFavCount = this.data.favorites.length;
+    this.data.favorites = this.data.favorites.filter(f => userIds.has(f.userId));
+    if (this.data.favorites.length !== initialFavCount) modified = true;
+
+    if (modified) {
+      this.save();
     }
   }
 

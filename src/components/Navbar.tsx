@@ -9,8 +9,7 @@ import {
   LogOut,
   Camera,
   Layers,
-  ChevronDown,
-  Film
+  ChevronDown
 } from 'lucide-react';
 import { User, Profile } from '../types.ts';
 
@@ -22,7 +21,6 @@ interface NavbarProps {
   pendingInterestsCount: number;
   onOpenAuth: (mode: 'login' | 'register' | 'admin') => void;
   onLogout: () => void;
-  onQuickSwitch: (role: 'priya' | 'rohit' | 'admin' | 'guest') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -32,10 +30,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   setActiveTab,
   pendingInterestsCount,
   onOpenAuth,
-  onLogout,
-  onQuickSwitch
+  onLogout
 }) => {
-  const [showDemoMenu, setShowDemoMenu] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   const isAdmin = currentUser?.role === 'admin';
@@ -174,113 +170,24 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
               </div>
             )}
-            {/* Cinematic Lip Animation Story Button */}
-            <button
-              onClick={() => setActiveTab('cinematic')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center space-x-1.5 border ${
-                activeTab === 'cinematic'
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                  : 'bg-indigo-50/70 border-indigo-200/80 text-indigo-700 hover:bg-indigo-100/80'
-              }`}
-              title="Experience cinematic scroll zoom-in animation"
-            >
-              <Film className="w-3.5 h-3.5 text-indigo-600" />
-              <span>Cinematic Story</span>
-            </button>
           </nav>
 
           {/* Right Action Buttons */}
           <div className="flex items-center space-x-2.5">
-            {/* Quick Demo Switcher */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowDemoMenu(!showDemoMenu)}
-                className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 text-xs font-medium transition-colors shadow-2xs"
-                title="Switch test accounts easily"
-              >
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                <span className="hidden sm:inline font-semibold">Demo Role:</span>
-                <span className="text-slate-900 font-bold">
-                  {isAdmin
-                    ? 'Admin'
-                    : currentUser?.username === 'priya_sharma'
-                    ? 'Priya'
-                    : currentUser?.username === 'rohit_verma'
-                    ? 'Rohit'
-                    : currentUser
-                    ? currentUser.username
-                    : 'Guest'}
-                </span>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
-              </button>
-
-              {showDemoMenu && (
-                <div
-                  className="absolute right-0 mt-2 w-60 rounded-xl bg-white shadow-xl border border-slate-200 py-1.5 z-50 text-xs animate-in fade-in slide-in-from-top-2"
-                  onClick={() => setShowDemoMenu(false)}
-                >
-                  <div className="px-3 py-1.5 border-b border-slate-100 font-semibold text-slate-600 uppercase tracking-wider text-[10px]">
-                    Switch Profile / Role
-                  </div>
-                  <button
-                    onClick={() => onQuickSwitch('priya')}
-                    className="w-full text-left px-3 py-2 hover:bg-rose-50 flex items-center justify-between text-slate-800"
-                  >
-                    <div>
-                      <p className="font-semibold text-rose-950">Priya Sharma</p>
-                      <p className="text-[11px] text-slate-600">User with pending requests</p>
-                    </div>
-                    <span className="text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded font-medium">User</span>
-                  </button>
-                  <button
-                    onClick={() => onQuickSwitch('rohit')}
-                    className="w-full text-left px-3 py-2 hover:bg-rose-50 flex items-center justify-between text-slate-800"
-                  >
-                    <div>
-                      <p className="font-semibold text-rose-950">Rohit Verma</p>
-                      <p className="text-[11px] text-slate-600">Product Manager, Bangalore</p>
-                    </div>
-                    <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium">User</span>
-                  </button>
-                  <button
-                    onClick={() => onQuickSwitch('admin')}
-                    className="w-full text-left px-3 py-2 hover:bg-amber-50 flex items-center justify-between text-slate-800"
-                  >
-                    <div>
-                      <p className="font-semibold text-amber-950">Administrator</p>
-                      <p className="text-[11px] text-slate-600">Verification & photo approvals</p>
-                    </div>
-                    <span className="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded font-bold">Admin</span>
-                  </button>
-                  <button
-                    onClick={() => onQuickSwitch('guest')}
-                    className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center justify-between text-slate-700 border-t border-slate-100"
-                  >
-                    <div>
-                      <p className="font-medium text-slate-700">Guest Visitor</p>
-                      <p className="text-[11px] text-slate-600">Logged out state</p>
-                    </div>
-                    <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-medium">Guest</span>
-                  </button>
-                </div>
-              )}
-            </div>
-
             {/* If Not Logged In */}
             {!currentUser ? (
               <div className="flex items-center space-x-2">
                 <button
                   type="button"
                   onClick={() => onOpenAuth('login')}
-                  className="px-3.5 py-2 text-sm font-semibold text-slate-700 hover:text-slate-950 hover:bg-slate-100 rounded-lg transition-colors"
+                  className="px-3.5 py-2 min-h-[44px] text-sm font-semibold text-slate-700 hover:text-slate-950 hover:bg-slate-100 rounded-xl transition-colors flex items-center justify-center"
                 >
                   Log In
                 </button>
                 <button
                   type="button"
                   onClick={() => onOpenAuth('register')}
-                  className="px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 rounded-lg shadow-sm shadow-rose-200 transition-all hover:scale-[1.02]"
+                  className="px-4 py-2 min-h-[44px] text-sm font-semibold text-white bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 rounded-xl shadow-sm shadow-rose-200 transition-all hover:scale-[1.02] flex items-center justify-center"
                 >
                   Register Free
                 </button>
@@ -291,7 +198,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowProfileMenu(!showProfileMenu)}
-                  className="flex items-center space-x-2 p-1 pl-2 pr-2.5 rounded-full border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-colors"
+                  aria-label="User account menu"
+                  aria-expanded={showProfileMenu}
+                  className="flex items-center space-x-2 p-1.5 pl-2.5 pr-3 min-h-[44px] rounded-full border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-colors"
                 >
                   <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center">
                     {currentProfile?.profilePhoto ? (
@@ -308,7 +217,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <span className="text-xs font-semibold text-slate-800 max-w-[100px] truncate hidden sm:inline">
                     {currentProfile?.fullName || currentUser.username}
                   </span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
                 </button>
 
                 {showProfileMenu && (
@@ -332,17 +241,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                     {!isAdmin && (
                       <>
                         <button
+                          type="button"
                           onClick={() => setActiveTab('profile')}
-                          className="w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-center space-x-2 text-slate-700"
+                          className="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 flex items-center space-x-2 text-slate-700 font-medium"
                         >
-                          <UserIcon className="w-3.5 h-3.5 text-slate-500" />
+                          <UserIcon className="w-4 h-4 text-slate-500" />
                           <span>Edit My Profile</span>
                         </button>
                         <button
+                          type="button"
                           onClick={() => setActiveTab('media')}
-                          className="w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-center space-x-2 text-slate-700"
+                          className="w-full text-left px-3.5 py-2.5 hover:bg-slate-50 flex items-center space-x-2 text-slate-700 font-medium"
                         >
-                          <Camera className="w-3.5 h-3.5 text-slate-500" />
+                          <Camera className="w-4 h-4 text-slate-500" />
                           <span>Manage Photos</span>
                         </button>
                       </>
@@ -350,10 +261,11 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                     {isAdmin && (
                       <button
+                        type="button"
                         onClick={() => setActiveTab('admin')}
-                        className="w-full text-left px-3.5 py-2 hover:bg-amber-50 flex items-center space-x-2 text-amber-900 font-medium"
+                        className="w-full text-left px-3.5 py-2.5 hover:bg-amber-50 flex items-center space-x-2 text-amber-900 font-medium"
                       >
-                        <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+                        <ShieldCheck className="w-4 h-4 text-amber-600" />
                         <span>Admin Dashboard</span>
                       </button>
                     )}
@@ -361,10 +273,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <div className="border-t border-slate-100 my-1" />
 
                     <button
+                      type="button"
                       onClick={onLogout}
-                      className="w-full text-left px-3.5 py-2 hover:bg-rose-50 flex items-center space-x-2 text-rose-600 font-medium"
+                      className="w-full text-left px-3.5 py-2.5 hover:bg-rose-50 flex items-center space-x-2 text-rose-700 font-medium"
                     >
-                      <LogOut className="w-3.5 h-3.5" />
+                      <LogOut className="w-4 h-4" />
                       <span>Log Out</span>
                     </button>
                   </div>
@@ -374,6 +287,126 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Mobile Bottom Navigation Bar (App-like navigation for small screens) */}
+      <nav
+        aria-label="Mobile Bottom Navigation"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-lg px-2 py-1 flex items-center justify-around"
+      >
+        {!currentUser ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setActiveTab('home')}
+              className={`flex-1 flex flex-col items-center justify-center py-1.5 min-h-[48px] rounded-lg text-[10px] font-medium transition-colors ${
+                activeTab === 'home' ? 'text-rose-600 font-bold' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Heart className={`w-4 h-4 mb-0.5 ${activeTab === 'home' ? 'fill-rose-500 text-rose-600' : ''}`} />
+              <span>Home</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('search')}
+              className={`flex-1 flex flex-col items-center justify-center py-1.5 min-h-[48px] rounded-lg text-[10px] font-medium transition-colors ${
+                activeTab === 'search' ? 'text-rose-600 font-bold' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Search className="w-4 h-4 mb-0.5" />
+              <span>Discover</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onOpenAuth('login')}
+              className="flex-1 flex flex-col items-center justify-center py-1.5 min-h-[48px] rounded-lg text-[10px] font-semibold text-rose-700 hover:text-rose-900 transition-colors"
+            >
+              <UserIcon className="w-4 h-4 mb-0.5" />
+              <span>Sign In</span>
+            </button>
+          </>
+        ) : isAdmin ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setActiveTab('admin')}
+              className={`flex-1 flex flex-col items-center justify-center py-1.5 min-h-[48px] rounded-lg text-[10px] font-semibold transition-colors ${
+                activeTab === 'admin' ? 'text-amber-700 font-bold' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <ShieldCheck className="w-4 h-4 mb-0.5" />
+              <span>Admin</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('search')}
+              className={`flex-1 flex flex-col items-center justify-center py-1.5 min-h-[48px] rounded-lg text-[10px] font-semibold transition-colors ${
+                activeTab === 'search' ? 'text-amber-700 font-bold' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Search className="w-4 h-4 mb-0.5" />
+              <span>User View</span>
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={() => setActiveTab('dashboard')}
+              className={`flex-1 flex flex-col items-center justify-center py-1.5 min-h-[48px] rounded-lg text-[10px] font-medium transition-colors ${
+                activeTab === 'dashboard' ? 'text-rose-600 font-bold' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Layers className="w-4 h-4 mb-0.5" />
+              <span>Dashboard</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('search')}
+              className={`flex-1 flex flex-col items-center justify-center py-1.5 min-h-[48px] rounded-lg text-[10px] font-medium transition-colors ${
+                activeTab === 'search' ? 'text-rose-600 font-bold' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Search className="w-4 h-4 mb-0.5" />
+              <span>Matches</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('recommendations')}
+              className={`flex-1 flex flex-col items-center justify-center py-1.5 min-h-[48px] rounded-lg text-[10px] font-medium transition-colors ${
+                activeTab === 'recommendations' ? 'text-rose-600 font-bold' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Sparkles className="w-4 h-4 mb-0.5 text-amber-500" />
+              <span>Top AI</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('favorites')}
+              className={`flex-1 flex flex-col items-center justify-center py-1.5 min-h-[48px] rounded-lg text-[10px] font-medium transition-colors ${
+                activeTab === 'favorites' ? 'text-rose-600 font-bold' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Heart className={`w-4 h-4 mb-0.5 ${activeTab === 'favorites' ? 'fill-rose-500 text-rose-600' : ''}`} />
+              <span>Shortlist</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('interests')}
+              className={`relative flex-1 flex flex-col items-center justify-center py-1.5 min-h-[48px] rounded-lg text-[10px] font-medium transition-colors ${
+                activeTab === 'interests' ? 'text-rose-600 font-bold' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Bell className="w-4 h-4 mb-0.5" />
+              {pendingInterestsCount > 0 && (
+                <span className="absolute top-1 right-3.5 bg-rose-600 text-white text-[9px] w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold">
+                  {pendingInterestsCount}
+                </span>
+              )}
+              <span>Interests</span>
+            </button>
+          </>
+        )}
+      </nav>
     </header>
   );
 };

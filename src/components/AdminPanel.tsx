@@ -15,7 +15,8 @@ import {
   UserCheck,
   UserX,
   ExternalLink,
-  ShieldAlert
+  ShieldAlert,
+  Trash2
 } from 'lucide-react';
 import { AdminStats, User, Profile, MediaModerationItem, AdminUserRecord } from '../types.ts';
 import { api } from '../services/api.ts';
@@ -32,6 +33,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onViewProfile }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'verifications' | 'media' | 'logs'>('overview');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+
+  // User deletion state
+  const [userToDelete, setUserToDelete] = useState<{ user: User; profile?: Profile } | null>(null);
+  const [deletingUser, setDeletingUser] = useState(false);
 
   // Rejection modal state for media
   const [rejectingPhoto, setRejectingPhoto] = useState<MediaModerationItem | null>(null);
@@ -105,6 +111,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onViewProfile }) => {
     }
   };
 
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+    try {
+      setDeletingUser(true);
+      const res = await api.deleteAdminUser(userToDelete.user._id);
+      setActionSuccess(res.message);
+      setUserToDelete(null);
+      await loadData();
+      setTimeout(() => setActionSuccess(null), 5000);
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete user account');
+    } finally {
+      setDeletingUser(false);
+    }
+  };
+
   const filteredUsers = adminUsers.filter(
     (item) =>
       item.user.email.toLowerCase().includes(userSearch.toLowerCase()) ||
@@ -149,6 +171,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onViewProfile }) => {
         <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl text-xs flex items-center space-x-2">
           <AlertTriangle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
+        </div>
+      )}
+
+      {actionSuccess && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs flex items-center space-x-2 animate-in fade-in">
+          <CheckCircle className="w-4 h-4 shrink-0 text-emerald-600" />
+          <span className="font-medium">{actionSuccess}</span>
         </div>
       )}
 
@@ -361,16 +390,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onViewProfile }) => {
                       </td>
                       <td className="py-3 px-4 text-right">
                         {u.role !== 'admin' && (
-                          <button
-                            onClick={() => handleToggleUserStatus(u)}
-                            className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-colors ${
-                              isActive
-                                ? 'border-rose-200 text-rose-700 hover:bg-rose-50'
-                                : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
-                            }`}
-                          >
-                            {isActive ? 'Suspend User' : 'Reactivate'}
-                          </button>
+                          <div className="flex items-center justify-end space-x-2">
+                            <button
+                              onClick={() => handleToggleUserStatus(u)}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors ${
+                                isActive
+                                  ? 'border-rose-200 text-rose-700 hover:bg-rose-50'
+                                  : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+                              }`}
+                            >
+                              {isActive ? 'Suspend' : 'Reactivate'}
+                            </button>
+                            <button
+                              onClick={() => setUserToDelete({ user: u, profile: p })}
+                              className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-200"
+                              title="Delete user account and associated data"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -575,6 +613,52 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onViewProfile }) => {
                 className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold"
               >
                 Confirm Rejection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete User Confirmation Modal */}
+      {userToDelete && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-100 animate-in fade-in zoom-in-95">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Permanently Delete User Account?</h3>
+                <p className="text-xs text-slate-500">
+                  {userToDelete.profile?.fullName || userToDelete.user.username} (@{userToDelete.user.username})
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-1">
+              <p className="font-semibold">Safe Cascaded Removal:</p>
+              <ul className="list-disc list-inside text-[11px] text-amber-800 space-y-0.5">
+                <li>User account and login credentials will be removed.</li>
+                <li>Matrimony profile, photos, and verification documents deleted.</li>
+                <li>All incoming and outgoing interest requests cleaned up.</li>
+                <li>Saved bookmarks and favorites deleted without leaving orphan records.</li>
+              </ul>
+            </div>
+
+            <div className="flex items-center justify-end space-x-2 pt-2">
+              <button
+                onClick={() => setUserToDelete(null)}
+                disabled={deletingUser}
+                className="px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteUser}
+                disabled={deletingUser}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50 flex items-center space-x-1.5"
+              >
+                {deletingUser ? <span>Deleting...</span> : <span>Confirm Permanent Delete</span>}
               </button>
             </div>
           </div>

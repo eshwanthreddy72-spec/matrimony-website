@@ -94,6 +94,31 @@ router.put('/users/:id/status', (req: AuthRequest, res: Response) => {
   });
 });
 
+// DELETE /api/admin/users/:id - safely remove user and cascaded associations
+router.delete('/users/:id', (req: AuthRequest, res: Response) => {
+  const targetUser = db.findUserById(req.params.id);
+  if (!targetUser) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  if (targetUser.role === 'admin') {
+    return res.status(403).json({ error: 'Cannot delete an administrator account.' });
+  }
+
+  if (req.user && req.user._id === targetUser._id) {
+    return res.status(403).json({ error: 'Cannot delete your own active administrator account.' });
+  }
+
+  const success = db.deleteUser(req.params.id);
+  if (!success) {
+    return res.status(500).json({ error: 'Failed to delete user account' });
+  }
+
+  return res.json({
+    message: `User @${targetUser.username} and all linked profile data, interests, and favorites have been permanently removed.`
+  });
+});
+
 // PUT /api/admin/profiles/:id/verify - toggle verification
 router.put('/profiles/:id/verify', (req: AuthRequest, res: Response) => {
   const { isVerified } = req.body;
