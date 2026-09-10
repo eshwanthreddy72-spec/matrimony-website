@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { Navbar } from './components/Navbar.tsx';
 import { LandingHero } from './components/LandingHero.tsx';
 import { UserDashboard } from './components/UserDashboard.tsx';
@@ -623,6 +624,7 @@ export default function App() {
           </div>
         </div>
       </footer>
+      <Analytics />
     </div>
   );
 }
