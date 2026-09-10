@@ -14,6 +14,7 @@ import { SendInterestModal } from './components/SendInterestModal.tsx';
 import { api, tokenStorage } from './services/api.ts';
 import { User, Profile, Interest, Favorite, MatchRecommendation, SearchFilters } from './types.ts';
 import { Heart, ShieldCheck, Lock, Users, Sparkles, Phone, Mail, CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -623,6 +624,7 @@ export default function App() {
           </div>
         </div>
       </footer>
+      <SpeedInsights />
     </div>
   );
 }
